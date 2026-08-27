@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATH AI 协作工作台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: #f5f6f8; color: #1f2329; min-height: 100vh; }
+
+  /* 顶部导航 */
+  .topbar { background: #fff; border-bottom: 1px solid #e5e6eb; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: #1f2329; }
+  .logo-icon { width: 30px; height: 30px; background: linear-gradient(135deg, #4e6ef2, #6366f1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; font-size: 12px; color: #8f959e; }
+  .status-badge { display: flex; align-items: center; gap: 6px; padding: 4px 10px; background: #e8ffea; border-radius: 12px; font-size: 11px; color: #00b42a; font-weight: 500; }
+  .status-badge.off { background: #f2f3f5; color: #8f959e; }
+  .status-dot { width: 6px; height: 6px; background: #00b42a; border-radius: 50%; }
+  .status-badge.off .status-dot { background: #c9cdd4; }
+  .top-action { cursor: pointer; padding: 4px 10px; border-radius: 6px; transition: all 0.15s; }
+  .top-action:hover { background: #f0f1f5; color: #1f2329; }
+
+  /* 模式切换 Tab */
+  .tabs { background: #fff; border-bottom: 1px solid #e5e6eb; padding: 0 24px; display: flex; gap: 4px; }
+  .tab { padding: 14px 20px; font-size: 13px; color: #646a73; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .tab:hover { color: #1f2329; }
+  .tab.active { color: #4e6ef2; border-bottom-color: #4e6ef2; }
+  .tab-num { width: 20px; height: 20px; background: #f0f1f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #646a73; }
+  .tab.active .tab-num { background: #4e6ef2; color: #fff; }
+  .tab-sub { font-size: 11px; color: #8f959e; margin-left: 2px; }
+
+  /* 主内容区 */
+  .workspace { display: none; padding: 16px; gap: 14px; height: calc(100vh - 112px); }
+  .workspace.active { display: grid; grid-template-columns: 1.35fr 1.35fr 0.7fr; }
+
+  /* 列 */
+  .col { background: #fff; border: 1px solid #e5e6eb; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .col-header { padding: 12px 16px; border-bottom: 1px solid #f0f1f5; display: flex; align-items: center; justify-content: space-between; }
+  .col-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: #1f2329; }
+  .col-title .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.input { background: #4e6ef2; }
+  .dot.ai { background: #6366f1; }
+  .dot.output { background: #00b42a; }
+  .col-badge { font-size: 11px; color: #8f959e; background: #f5f6f8; padding: 3px 8px; border-radius: 6px; }
+  .col-body { padding: 14px; flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.6; }
+
+  /* 输入区 - 强化版 */
+  .input-section { margin-bottom: 14px; }
+  .input-label { font-size: 11px; color: #8f959e; margin-bottom: 8px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; }
+  .input-label .action { color: #4e6ef2; cursor: pointer; font-weight: 500; }
+  .input-label .action:hover { text-decoration: underline; }
+
+  /* 知识库链接 */
+  .kb-list { display: flex; flex-direction: column; gap: 6px; }
+  .kb-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f7f8fa; border: 1px solid #eef0f3; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .kb-item:hover { border-color: #4e6ef2; background: #f0f3ff; }
+  .kb-item.active { border-color: #4e6ef2; background: #f0f3ff; }
+  .kb-icon { width: 24px; height: 24px; background: #e8ebff; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+  .kb-info { flex: 1; min-width: 0; }
+  .kb-name { font-weight: 500; color: #1f2329; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kb-meta { font-size: 10px; color: #8f959e; }
+  .kb-check { width: 16px; height: 16px; border: 1.5px solid #c9cdd4; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .kb-item.active .kb-check { background: #4e6ef2; border-color: #4e6ef2; color: #fff; font-size: 10px; }
+
+  /* 标准参考选取 */
+  .std-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .std-item { display: flex; align-items: center; gap: 6px; padding: 7px 10px; background: #f7f8fa; border: 1px solid #eef0f3; border-radius: 8px; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+  .std-item:hover { border-color: #4e6ef2; }
+  .std-item.active { border-color: #4e6ef2; background: #f0f3ff; color: #4e6ef2; font-weight: 500; }
+  .std-check { width: 14px; height: 14px; border: 1.5px solid #c9cdd4; border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .std-item.active .std-check { background: #4e6ef2; border-color: #4e6ef2; color: #fff; font-size: 9px; }
+
+  /* 规范自定义 */
+  .spec-card { background: #f7f8fa; border: 1px solid #eef0f3; border-radius: 10px; padding: 10px 12px; }
+  .spec-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eef0f3; font-size: 12px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-key { color: #646a73; }
+  .spec-val { display: flex; align-items: center; gap: 6px; font-weight: 500; color: #1f2329; }
+  .spec-val select { font-size: 11px; padding: 3px 6px; border: 1px solid #e5e6eb; border-radius: 5px; background: #fff; color: #1f2329; cursor: pointer; }
+  .spec-toggle { width: 32px; height: 18px; background: #4e6ef2; border-radius: 9px; position: relative; cursor: pointer; }
+  .spec-toggle::after { content: ''; position: absolute; right: 2px; top: 2px; width: 14px; height: 14px; background: #fff; border-radius: 50%; }
+  .spec-toggle.off { background: #c9cdd4; }
+  .spec-toggle.off::after { right: auto; left: 2px; }
+
+  /* Prompt 框 */
+  .prompt-box { background: #f7f8fa; border: 1px solid #eef0f3; border-radius: 10px; padding: 12px; font-family: "SF Mono", Consolas, "Courier New", monospace; font-size: 11px; color: #1f2329; line-height: 1.7; transition: all 0.15s; }
+  .prompt-box:hover { border-color: #4e6ef2; background: #fff; cursor: text; }
+  .prompt-box:focus { outline: none; border-color: #4e6ef2; background: #fff; box-shadow: 0 0 0 3px rgba(78,110,242,0.1); }
+  .prompt-box .cmt { color: #8f959e; }
+  .prompt-box .kw { color: #4e6ef2; font-weight: 600; }
+  .prompt-box .str { color: #00b42a; }
+  .prompt-box .hl { background: #fff3e0; padding: 1px 4px; border-radius: 3px; color: #ff7d00; }
+
+  /* AI输出区 */
+  .ai-output { background: #f7f8fa; border: 1px solid #eef0f3; border-radius: 10px; padding: 14px; font-family: "SF Mono", Consolas, "Courier New", monospace; font-size: 12px; line-height: 1.7; color: #1f2329; margin-bottom: 12px; word-break: break-word; }
+  .ai-output .cmt { color: #8f959e; }
+  .ai-output .kw { color: #4e6ef2; font-weight: 600; }
+  .ai-output .str { color: #00b42a; }
+  .ai-output .fn { color: #7c3aed; }
+  .ai-output .num { color: #ff7d00; }
+  .ai-output .hl { background: #fff3e0; padding: 1px 4px; border-radius: 3px; color: #ff7d00; font-weight: 500; }
+  .ai-output.prose { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 12.5px; line-height: 1.8; }
+  .ai-output.prose h4 { color: #4e6ef2; font-size: 13px; margin: 8px 0 4px; }
+  .ai-output.prose h3 { color: #4e6ef2; font-size: 13.5px; margin: 10px 0 5px; }
+  .ai-output.prose ul, .ai-output.prose ol { padding-left: 18px; margin: 4px 0; }
+  .ai-output.prose li { margin: 2px 0; }
+  .ai-output.prose code { background: #eef0f3; padding: 1px 4px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 11px; }
+  .ai-output.prose pre { background: #f0f1f5; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 6px 0; font-size: 11px; line-height: 1.6; }
+  .ai-output.prose pre code { background: none; padding: 0; }
+  .ai-output.prose table { border-collapse: collapse; margin: 6px 0; font-size: 11.5px; width: 100%; }
+  .ai-output.prose th, .ai-output.prose td { border: 1px solid #e5e6eb; padding: 5px 8px; text-align: left; }
+  .ai-output.prose th { background: #f0f3ff; color: #4e6ef2; }
+  .ai-output.prose blockquote { border-left: 3px solid #4e6ef2; padding: 4px 10px; color: #646a73; background: #f7f8fa; margin: 6px 0; border-radius: 0 6px 6px 0; }
+  .ai-output.prose hr { border: none; border-top: 1px solid #eef0f3; margin: 10px 0; }
+  .ai-output .placeholder { color: #c9cdd4; font-style: italic; }
+
+  .ai-meta { display: flex; gap: 14px; font-size: 11px; color: #8f959e; margin-bottom: 10px; flex-wrap: wrap; }
+  .ai-meta span { display: flex; align-items: center; gap: 4px; }
+  .ai-meta .ok { color: #00b42a; }
+  .ai-meta .loading { color: #4e6ef2; }
+
+  /* 右栏 - 弱化版 */
+  .action-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .btn { padding: 9px 14px; font-size: 12px; border-radius: 8px; border: 1px solid #e5e6eb; background: #fff; color: #1f2329; cursor: pointer; font-weight: 500; text-align: center; transition: all 0.15s; }
+  .btn:hover { border-color: #4e6ef2; color: #4e6ef2; }
+  .btn.primary { background: #4e6ef2; border-color: #4e6ef2; color: #fff; }
+  .btn.primary:hover { background: #3d5ce0; color: #fff; }
+  .btn.danger { border-color: #f53f3f; color: #f53f3f; }
+  .btn.danger:hover { background: #f53f3f; color: #fff; }
+  .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+  .mini-status { display: flex; flex-direction: column; gap: 6px; }
+  .mini-item { display: flex; align-items: center; gap: 8px; font-size: 11px; padding: 6px 8px; background: #f7f8fa; border-radius: 6px; }
+  .mini-icon { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+  .mini-icon.pass { background: #e8ffea; color: #00b42a; }
+  .mini-icon.wait { background: #fff7e6; color: #ff7d00; }
+  .mini-icon.run { background: #e8f3ff; color: #4e6ef2; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.45; } }
+  .mini-text { flex: 1; color: #646a73; }
+  .mini-text b { color: #1f2329; font-weight: 500; }
+
+  .compact-artifact { margin-top: 12px; padding: 10px; background: linear-gradient(135deg, #f0f3ff, #f5f0ff); border: 1px solid #e0e5ff; border-radius: 10px; }
+  .compact-artifact .title { font-size: 11px; font-weight: 600; color: #4e6ef2; margin-bottom: 6px; }
+  .compact-artifact .desc { font-size: 10.5px; color: #646a73; line-height: 1.6; }
+
+  /* 底部流程条 */
+  .flow-bar { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #e5e6eb; padding: 8px 24px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 11px; color: #8f959e; z-index: 5; }
+  .flow-step { display: flex; align-items: center; gap: 6px; }
+  .flow-step .num { width: 18px; height: 18px; background: #f0f1f5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: #8f959e; }
+  .flow-step.active .num { background: #4e6ef2; color: #fff; }
+  .flow-step.active .label { color: #4e6ef2; font-weight: 500; }
+  .flow-arrow { color: #c9cdd4; }
+
+  .workspace { padding-bottom: 48px; }
+
+  /* 三栏差异化主题 */
+  .col-input { border-left: 4px solid #4e6ef2; }
+  .col-input .col-header { background: #f0f3ff; border-bottom-color: #d6e0ff; }
+  .col-input .col-title { color: #4e6ef2; }
+
+  .col-ai { border-left: 4px solid #6366f1; }
+  .col-ai .col-header { background: #f5f0ff; border-bottom-color: #e0d4ff; }
+  .col-ai .col-title { color: #6366f1; }
+
+  .col-output { border-left: 4px solid #00b42a; }
+  .col-output .col-header { background: #e8ffea; border-bottom-color: #b8f0c0; }
+  .col-output .col-title { color: #00a02a; }
+
+  /* ========== 模式2：代码生成 - 上下布局 + 橙色系 ========== */
+  .ws-code {
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    grid-template-areas:
+      "input input"
+      "ai output" !important;
+  }
+  .ws-code .col-input { grid-area: input; }
+  .ws-code .col-ai { grid-area: ai; }
+  .ws-code .col-output { grid-area: output; }
+  .ws-code .logo-icon { background: linear-gradient(135deg, #ed7d31, #f59e0b); }
+  .ws-code .col-input { border-left-color: #ed7d31; }
+  .ws-code .col-input .col-header { background: #fff5ed; border-bottom-color: #ffd9b8; }
+  .ws-code .col-input .col-title { color: #ed7d31; }
+  .ws-code .col-ai { border-left-color: #f59e0b; }
+  .ws-code .col-ai .col-header { background: #fffbeb; border-bottom-color: #fde68a; }
+  .ws-code .col-ai .col-title { color: #d97706; }
+  .ws-code .col-output { border-left-color: #ea580c; }
+  .ws-code .col-output .col-header { background: #fff7ed; border-bottom-color: #fed7aa; }
+  .ws-code .col-output .col-title { color: #ea580c; }
+  .ws-code .btn.primary { background: #ed7d31; border-color: #ed7d31; }
+  .ws-code .btn.primary:hover { background: #d96c20; color: #fff; }
+  .ws-code .btn:hover { border-color: #ed7d31; color: #ed7d31; }
+  .ws-code .spec-toggle { background: #ed7d31; }
+  .ws-code .kb-item.active { border-color: #ed7d31; background: #fff5ed; }
+  .ws-code .kb-item:hover { border-color: #ed7d31; background: #fff5ed; }
+  .ws-code .kb-icon { background: #ffe8d6; }
+  .ws-code .std-item.active { border-color: #ed7d31; background: #fff5ed; color: #ed7d31; }
+  .ws-code .std-item:hover { border-color: #ed7d31; }
+  .ws-code .std-item.active .std-check { background: #ed7d31; border-color: #ed7d31; }
+  .ws-code .prompt-box .kw { color: #ed7d31; }
+  .ws-code .prompt-box .hl { background: #fff3e0; color: #ea580c; }
+  .ws-code .ai-output .kw { color: #ed7d31; }
+  .ws-code .ai-output .fn { color: #d97706; }
+  .ws-code .ai-output .hl { background: #fff3e0; color: #ea580c; }
+  .ws-code .ai-output.prose h4, .ws-code .ai-output.prose h3 { color: #ed7d31; }
+  .ws-code .compact-artifact { background: linear-gradient(135deg, #fff5ed, #fffbeb); border-color: #fed7aa; }
+  .ws-code .compact-artifact .title { color: #ed7d31; }
+  .ws-code .mini-icon.pass { background: #fff5ed; color: #ed7d31; }
+
+  /* ========== 模式3：智能答疑 - 左大右小 + 绿色系 ========== */
+  .ws-qa {
+    grid-template-columns: 1.45fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    grid-template-areas:
+      "ai input"
+      "ai output" !important;
+  }
+  .ws-qa .col-input { grid-area: input; }
+  .ws-qa .col-ai { grid-area: ai; }
+  .ws-qa .col-output { grid-area: output; }
+  .ws-qa .logo-icon { background: linear-gradient(135deg, #10b981, #14b8a6); }
+  .ws-qa .col-input { border-left-color: #10b981; }
+  .ws-qa .col-input .col-header { background: #ecfdf5; border-bottom-color: #a7f3d0; }
+  .ws-qa .col-input .col-title { color: #059669; }
+  .ws-qa .col-ai { border-left-color: #14b8a6; }
+  .ws-qa .col-ai .col-header { background: #f0fdfa; border-bottom-color: #99f6e4; }
+  .ws-qa .col-ai .col-title { color: #0d9488; }
+  .ws-qa .col-output { border-left-color: #059669; }
+  .ws-qa .col-output .col-header { background: #ecfdf5; border-bottom-color: #a7f3d0; }
+  .ws-qa .col-output .col-title { color: #047857; }
+  .ws-qa .btn.primary { background: #10b981; border-color: #10b981; }
+  .ws-qa .btn.primary:hover { background: #059669; color: #fff; }
+  .ws-qa .btn:hover { border-color: #10b981; color: #10b981; }
+  .ws-qa .spec-toggle { background: #10b981; }
+  .ws-qa .kb-item.active { border-color: #10b981; background: #ecfdf5; }
+  .ws-qa .kb-item:hover { border-color: #10b981; background: #ecfdf5; }
+  .ws-qa .kb-icon { background: #d1fae5; }
+  .ws-qa .std-item.active { border-color: #10b981; background: #ecfdf5; color: #059669; }
+  .ws-qa .std-item:hover { border-color: #10b981; }
+  .ws-qa .std-item.active .std-check { background: #10b981; border-color: #10b981; }
+  .ws-qa .prompt-box .kw { color: #059669; }
+  .ws-qa .prompt-box .hl { background: #d1fae5; color: #047857; }
+  .ws-qa .ai-output .kw { color: #059669; }
+  .ws-qa .ai-output .fn { color: #0d9488; }
+  .ws-qa .ai-output .hl { background: #d1fae5; color: #047857; }
+  .ws-qa .ai-output.prose h4, .ws-qa .ai-output.prose h3 { color: #059669; }
+  .ws-qa .ai-output.prose th { background: #ecfdf5; color: #059669; }
+  .ws-qa .ai-output.prose blockquote { border-left-color: #10b981; }
+  .ws-qa .compact-artifact { background: linear-gradient(135deg, #ecfdf5, #f0fdfa); border-color: #a7f3d0; }
+  .ws-qa .compact-artifact .title { color: #059669; }
+  .ws-qa .mini-icon.pass { background: #ecfdf5; color: #059669; }
+
+  /* 主题切换 - Tab 和顶部 */
+  body.theme-code .logo-icon { background: linear-gradient(135deg, #ed7d31, #f59e0b); }
+  body.theme-code .tab.active { color: #ed7d31; border-bottom-color: #ed7d31; }
+  body.theme-code .tab.active .tab-num { background: #ed7d31; }
+  body.theme-code .status-badge { background: #fff5ed; color: #ed7d31; }
+  body.theme-code .status-dot { background: #ed7d31; }
+  body.theme-code .flow-step.active .num { background: #ed7d31; }
+  body.theme-code .flow-step.active .label { color: #ed7d31; }
+  body.theme-code .btn.primary { background: #ed7d31; border-color: #ed7d31; }
+
+  body.theme-qa .logo-icon { background: linear-gradient(135deg, #10b981, #14b8a6); }
+  body.theme-qa .tab.active { color: #10b981; border-bottom-color: #10b981; }
+  body.theme-qa .tab.active .tab-num { background: #10b981; }
+  body.theme-qa .status-badge { background: #ecfdf5; color: #059669; }
+  body.theme-qa .status-dot { background: #10b981; }
+  body.theme-qa .flow-step.active .num { background: #10b981; }
+  body.theme-qa .flow-step.active .label { color: #10b981; }
+  body.theme-qa .btn.primary { background: #10b981; border-color: #10b981; }
+
+  /* 滚动条 */
+  .col-body::-webkit-scrollbar { width: 4px; }
+  .col-body::-webkit-scrollbar-thumb { background: #e5e6eb; border-radius: 2px; }
+
+  /* ========== 新增：设置弹窗 ========== */
+  .modal-mask { display: none; position: fixed; inset: 0; background: rgba(31,35,41,0.45); z-index: 100; align-items: flex-start; justify-content: center; padding-top: 8vh; }
+  .modal-mask.show { display: flex; }
+  .modal { width: 520px; max-width: 92vw; background: #fff; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.16); overflow: hidden; }
+  .modal-head { padding: 16px 20px; border-bottom: 1px solid #f0f1f5; display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-size: 14px; font-weight: 600; color: #1f2329; }
+  .modal-close { cursor: pointer; color: #8f959e; font-size: 16px; padding: 2px 6px; border-radius: 6px; }
+  .modal-close:hover { background: #f0f1f5; color: #1f2329; }
+  .modal-body { padding: 18px 20px; max-height: 62vh; overflow-y: auto; }
+  .modal-foot { padding: 14px 20px; border-top: 1px solid #f0f1f5; display: flex; gap: 10px; justify-content: flex-end; }
+  .field { margin-bottom: 16px; }
+  .field-label { font-size: 12px; font-weight: 600; color: #1f2329; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  .field-hint { font-size: 11px; color: #8f959e; margin-top: 4px; line-height: 1.6; }
+  .field input[type=text], .field input[type=password], .field select, .field textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #e5e6eb; border-radius: 8px; font-size: 12.5px; color: #1f2329; background: #fff; transition: all 0.15s; font-family: inherit;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #4e6ef2; box-shadow: 0 0 0 3px rgba(78,110,242,0.1); }
+  .field textarea { resize: vertical; min-height: 120px; font-family: "SF Mono", Consolas, monospace; font-size: 11.5px; line-height: 1.6; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .test-result { font-size: 11.5px; margin-top: 6px; padding: 8px 10px; border-radius: 6px; display: none; }
+  .test-result.ok { background: #e8ffea; color: #00a02a; display: block; }
+  .test-result.err { background: #ffece8; color: #f53f3f; display: block; }
+  .test-result.run { background: #e8f3ff; color: #4e6ef2; display: block; }
+
+  /* ========== 新增：历史抽屉 ========== */
+  .drawer-mask { display: none; position: fixed; inset: 0; background: rgba(31,35,41,0.3); z-index: 90; }
+  .drawer-mask.show { display: block; }
+  .drawer { position: fixed; top: 0; right: -420px; width: 400px; max-width: 90vw; height: 100vh; background: #fff; z-index: 95; transition: right 0.25s ease; box-shadow: -8px 0 30px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+  .drawer.show { right: 0; }
+  .drawer-head { padding: 16px 20px; border-bottom: 1px solid #f0f1f5; display: flex; align-items: center; justify-content: space-between; }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  .hist-empty { text-align: center; color: #c9cdd4; font-size: 12px; padding: 40px 0; }
+  .hist-item { border: 1px solid #eef0f3; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.15s; background: #fff; }
+  .hist-item:hover { border-color: #4e6ef2; box-shadow: 0 2px 8px rgba(78,110,242,0.08); }
+  .hist-item .hist-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .hist-mode { font-size: 10px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+  .hist-mode.m0 { background: #f0f3ff; color: #4e6ef2; }
+  .hist-mode.m1 { background: #fff5ed; color: #ed7d31; }
+  .hist-mode.m2 { background: #ecfdf5; color: #059669; }
+  .hist-time { font-size: 10px; color: #c9cdd4; }
+  .hist-prompt { font-size: 12px; color: #1f2329; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .hist-del { font-size: 10px; color: #c9cdd4; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+  .hist-del:hover { color: #f53f3f; background: #ffece8; }
+
+  .kb-size-badge { font-size: 10px; color: #8f959e; background: #f5f6f8; padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body class="theme-standard">
+
+<!-- 顶部导航 -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <span>ATH AI 协作工作台</span>
+  </div>
+  <div class="topbar-right">
+    <div class="status-badge off" id="keyStatus"><span class="status-dot"></span><span id="keyStatusText">模型未配置</span></div>
+    <span>v2.0.0</span>
+    <div class="top-action" onclick="openHistory()">🕘 历史</div>
+    <div class="top-action" onclick="openSettings()">⚙️ 模型设置</div>
+  </div>
+</div>
+
+<!-- 模式切换 -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab(0)">
+    <span class="tab-num">1</span> 标准撰写模式
+    <span class="tab-sub">协议设计阶段</span>
+  </div>
+  <div class="tab" onclick="switchTab(1)">
+    <span class="tab-num">2</span> 代码生成模式
+    <span class="tab-sub">工程实现阶段</span>
+  </div>
+  <div class="tab" onclick="switchTab(2)">
+    <span class="tab-num">3</span> 智能答疑模式
+    <span class="tab-sub">生态建设阶段</span>
+  </div>
+</div>
+
+<!-- ========== 模式1：标准撰写模式 ========== -->
+<div class="workspace active ws-standard" id="ws0">
+  <div class="col col-input">
+    <div class="col-header">
+      <div class="col-title"><span class="dot input"></span>我的输入</div>
+      <span class="col-badge">知识库 + 标准 + 规范</span>
+    </div>
+    <div class="col-body">
+      <div class="input-section">
+        <div class="input-label">📚 已接入知识库 <span class="action" onclick="openSettings()">⚙️ 更换</span></div>
+        <div class="kb-list">
+          <div class="kb-item active" id="kbItemMain">
+            <div class="kb-icon">📄</div>
+            <div class="kb-info">
+              <div class="kb-name">ATH 协议知识库</div>
+              <div class="kb-meta" id="kbMetaMain">内置精简版 · 全文注入</div>
+            </div>
+            <div class="kb-check">✓</div>
+          </div>
+          <div class="kb-item active">
+            <div class="kb-icon">📋</div>
+            <div class="kb-info">
+              <div class="kb-name">术语表与映射</div>
+              <div class="kb-meta">内置 20+ 术语 · 中英文对照</div>
+            </div>
+            <div class="kb-check">✓</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label">📖 参考标准选取 <span class="action" onclick="resetStd()">重置</span></div>
+        <div class="std-grid">
+          <div class="std-item active"><div class="std-check">✓</div>OAuth 2.0 / PKCE</div>
+          <div class="std-item active"><div class="std-check">✓</div>RFC 8707 资源指示</div>
+          <div class="std-item active"><div class="std-check">✓</div>RFC 7519 JWT</div>
+          <div class="std-item"><div class="std-check"></div>MCP 协议</div>
+          <div class="std-item"><div class="std-check"></div>A2A 协议</div>
+          <div class="std-item active"><div class="std-check">✓</div>RFC 2119 关键词</div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label">⚙️ 撰写规范配置</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <span class="spec-key">输出语言</span>
+            <span class="spec-val"><select id="stdLang"><option>中英文双语</option><option>仅中文</option><option>仅英文</option></select></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">强制力关键词</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">自动生成示例</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">术语一致性校验</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label">✏️ 撰写 Prompt <span class="action" onclick="resetPrompt(0)">重置</span></div>
+        <div class="prompt-box" id="prompt0" contenteditable="true" title="点击可编辑 Prompt">
+<span class="cmt"># 角色：ATH 协议规范撰写专家</span>
+<span class="kw">任务</span>：生成第 5.2 节「握手请求」的规范条款
+<span class="kw">要求</span>：遵循 RFC 2119 关键词约定，中英文双语
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col col-ai">
+    <div class="col-header">
+      <div class="col-title"><span class="dot ai"></span>AI 输出</div>
+      <span class="col-badge">规范条款 · 双语</span>
+    </div>
+    <div class="col-body">
+      <div class="ai-meta" id="meta0">
+        <span class="loading">💡 点击右侧「开始生成」调用真实模型（智谱 GLM）</span>
+      </div>
+      <div class="ai-output prose" id="out0p">
+        <span class="placeholder">尚无输出。填写 API Key 后点击「开始生成」，将调用智谱 GLM 实时撰写协议条款。</span>
+      </div>
+      <div class="ai-output" id="out0s">
+        <span class="placeholder">// JSON Schema 将在此显示</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col col-output">
+    <div class="col-header">
+      <div class="col-title"><span class="dot output"></span>处理</div>
+    </div>
+    <div class="col-body">
+      <div class="action-row">
+        <button class="btn primary" id="btnGen0" onclick="generate('standard')">🚀 开始生成</button>
+        <button class="btn" onclick="toggleEdit(0)">✏️ 编辑修改</button>
+        <button class="btn" onclick="generate('standard')">🔄 重新生成</button>
+      </div>
+      <div class="input-label" style="font-size:11px;color:#8f959e;margin-bottom:6px;font-weight:600;">校验状态 <span style="font-weight:400;color:#c9cdd4;">（生成后自动检查）</span></div>
+      <div class="mini-status" id="checks0">
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>RFC 关键词</b><br>等待生成</div></div>
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>术语一致性</b><br>等待生成</div></div>
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>人工审核</b><br>待专家确认</div></div>
+      </div>
+      <div class="compact-artifact">
+        <div class="title">📦 沉淀产出</div>
+        <div class="desc" id="artifact0">生成完成后可在此查看沉淀内容</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 模式2：代码生成模式 ========== -->
+<div class="workspace ws-code" id="ws1">
+  <div class="col col-input">
+    <div class="col-header">
+      <div class="col-title"><span class="dot input"></span>我的输入</div>
+      <span class="col-badge">规范 + Prompt</span>
+    </div>
+    <div class="col-body">
+      <div class="input-section">
+        <div class="input-label">🎯 端点选取</div>
+        <div class="std-grid">
+          <div class="std-item active" data-ep="handshake"><div class="std-check">✓</div>handshake</div>
+          <div class="std-item" data-ep="discovery"><div class="std-check"></div>discovery</div>
+          <div class="std-item" data-ep="token"><div class="std-check"></div>token</div>
+          <div class="std-item" data-ep="verify"><div class="std-check"></div>verify</div>
+        </div>
+      </div>
+      <div class="input-section">
+        <div class="input-label">💻 目标语言</div>
+        <div class="std-grid">
+          <div class="std-item active" data-lang="TypeScript"><div class="std-check">✓</div>TypeScript</div>
+          <div class="std-item active" data-lang="Python"><div class="std-check">✓</div>Python</div>
+          <div class="std-item" data-lang="Go"><div class="std-check"></div>Go</div>
+        </div>
+      </div>
+      <div class="input-section">
+        <div class="input-label">⚙️ 生成规范配置</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <span class="spec-key">统一错误码</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">JWT 三项校验</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">自动生成单测</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">代码风格</span>
+            <span class="spec-val"><select id="codeStyle"><option>遵循规范库</option><option>Google Style</option><option>Airbnb</option></select></span>
+          </div>
+        </div>
+      </div>
+      <div class="input-section">
+        <div class="input-label">✏️ 端点级 Prompt <span class="action" onclick="resetPrompt(1)">重置</span></div>
+        <div class="prompt-box" id="prompt1" contenteditable="true" title="点击可编辑 Prompt">
+<span class="cmt"># 角色：ATH 端点实现专家</span>
+<span class="kw">强制</span>：遵循 knowledge base 中的规范定义
+<span class="kw">强制</span>：错误码使用统一错误码表
+<span class="kw">强制</span>：JWT 校验<span class="hl">audience + scope + expiry</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col col-ai">
+    <div class="col-header">
+      <div class="col-title"><span class="dot ai"></span>AI 输出</div>
+      <span class="col-badge">多语言代码 + 测试</span>
+    </div>
+    <div class="col-body">
+      <div class="ai-meta" id="meta1">
+        <span class="loading">💡 选择端点与语言后点击「生成代码」</span>
+      </div>
+      <div class="ai-output" id="out1a">
+        <span class="placeholder">// 代码将在此实时生成</span>
+      </div>
+      <div class="ai-output" id="out1b">
+        <span class="placeholder">// 第二语言 / 测试用例</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col col-output">
+    <div class="col-header">
+      <div class="col-title"><span class="dot output"></span>处理</div>
+    </div>
+    <div class="col-body">
+      <div class="action-row">
+        <button class="btn primary" id="btnGen1" onclick="generate('code')">🚀 生成代码</button>
+        <button class="btn" onclick="toggleEdit(1)">✏️ 编辑修改</button>
+        <button class="btn" onclick="generate('code')">🔄 重新生成</button>
+      </div>
+      <div class="input-label" style="font-size:11px;color:#8f959e;margin-bottom:6px;font-weight:600;">本地检查 <span style="font-weight:400;color:#c9cdd4;">（真实前端检查）</span></div>
+      <div class="mini-status" id="checks1">
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>代码块闭合</b><br>等待生成</div></div>
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>括号配对</b><br>等待生成</div></div>
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>依赖注入</b><br>无后端依赖</div></div>
+      </div>
+      <div class="compact-artifact">
+        <div class="title">📦 沉淀产出</div>
+        <div class="desc" id="artifact1">生成完成后可复制代码沉淀</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 模式3：智能答疑模式 ========== -->
+<div class="workspace ws-qa" id="ws2">
+  <div class="col col-input">
+    <div class="col-header">
+      <div class="col-title"><span class="dot input"></span>我的输入</div>
+      <span class="col-badge">问题 + 知识库</span>
+    </div>
+    <div class="col-body">
+      <div class="input-section">
+        <div class="input-label">💬 预设问题（点击切换）</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+          <span class="qa-tag active" onclick="switchQA(0)" style="padding:4px 10px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:12px;font-size:10px;color:#059669;cursor:pointer;">401 报错</span>
+          <span class="qa-tag" onclick="switchQA(1)" style="padding:4px 10px;background:#f5f6f8;border:1px solid #e5e6eb;border-radius:12px;font-size:10px;color:#646a73;cursor:pointer;">SDK 集成</span>
+          <span class="qa-tag" onclick="switchQA(2)" style="padding:4px 10px;background:#f5f6f8;border:1px solid #e5e6eb;border-radius:12px;font-size:10px;color:#646a73;cursor:pointer;">协议机制</span>
+        </div>
+        <div class="qa-question" id="qaQuestion" contenteditable="true" style="padding:10px 12px;background:#f7f8fa;border:1px solid #eef0f3;border-radius:10px;font-size:12px;line-height:1.7;color:#1f2329;cursor:text;">
+          部署 ATH 网关时，handshake 端点返回 401，日志显示 "audience validation failed"，如何排查？
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label">📚 知识库 <span class="kb-size-badge" id="kbSizeBadge"></span></div>
+        <div class="kb-list">
+          <div class="kb-item active">
+            <div class="kb-icon">📄</div>
+            <div class="kb-info">
+              <div class="kb-name">ATH 协议知识库（全文检索）</div>
+              <div class="kb-meta">全文注入 prompt · 无向量库</div>
+            </div>
+            <div class="kb-check">✓</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label">🔗 开源协议与社区</div>
+        <div class="kb-list">
+          <div class="kb-item active">
+            <div class="kb-icon">📜</div>
+            <div class="kb-info">
+              <div class="kb-name">open ATH 开源协议</div>
+              <div class="kb-meta">Apache 2.0 + 专利授权</div>
+            </div>
+            <div class="kb-check">✓</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-section">
+        <div class="input-label">⚙️ 答疑配置</div>
+        <div class="spec-card">
+          <div class="spec-row">
+            <span class="spec-key">引用来源</span>
+            <span class="spec-val"><div class="spec-toggle" onclick="toggleSpec(this)"></div></span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">回答风格</span>
+            <span class="spec-val"><select id="qaStyle"><option>技术详细</option><option>简洁明了</option><option>分步指导</option></select></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col col-ai">
+    <div class="col-header">
+      <div class="col-title"><span class="dot ai"></span>AI 输出</div>
+      <span class="col-badge">答疑 + 知识条目</span>
+    </div>
+    <div class="col-body">
+      <div class="ai-meta" id="meta2">
+        <span class="loading">💡 输入问题后点击「开始答疑」</span>
+      </div>
+      <div class="ai-output prose" id="out2a">
+        <span class="placeholder">回答将在此实时生成，严格基于知识库。</span>
+      </div>
+      <div class="ai-output" id="out2b">
+        <span class="placeholder">// 建议沉淀的知识条目</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col col-output">
+    <div class="col-header">
+      <div class="col-title"><span class="dot output"></span>处理</div>
+    </div>
+    <div class="col-body">
+      <div class="action-row">
+        <button class="btn primary" id="btnGen2" onclick="generate('qa')">🚀 开始答疑</button>
+        <button class="btn" onclick="toggleEdit(2)">✏️ 编辑</button>
+        <button class="btn" onclick="generate('qa')">🔄 重新生成</button>
+      </div>
+      <div class="input-label" style="font-size:11px;color:#8f959e;margin-bottom:6px;font-weight:600;">校验状态 <span style="font-weight:400;color:#c9cdd4;">（生成后自动检查）</span></div>
+      <div class="mini-status" id="checks2">
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>知识库覆盖</b><br>等待生成</div></div>
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>术语命中</b><br>等待生成</div></div>
+        <div class="mini-item"><div class="mini-icon wait">!</div><div class="mini-text"><b>人工审核</b><br>待确认</div></div>
+      </div>
+      <div class="compact-artifact">
+        <div class="title">📦 沉淀产出</div>
+        <div class="desc" id="artifact2">回答可沉淀为知识条目</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 底部流程条 -->
+<div class="flow-bar">
+  <div class="flow-step active"><span class="num">1</span><span class="label">我的输入</span></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step" id="flowAI"><span class="num">2</span><span class="label">AI 生成</span></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step" id="flowCheck"><span class="num">3</span><span class="label">校验检查</span></div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step"><span class="num">4</span><span class="label">沉淀产出</span></div>
+</div>
+
+<!-- ========== 设置弹窗 ========== -->
+<div class="modal-mask" id="settingsModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">⚙️ 模型设置</div>
+      <div class="modal-close" onclick="closeSettings()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="field-label">🔑 智谱开放平台 API Key</div>
+        <input type="password" id="setApiKey" placeholder="粘贴你的 API Key（bigmodel.cn 免费注册）" autocomplete="off">
+        <div class="field-hint">Key 只保存在<b>你本地浏览器</b>（localStorage），不会上传任何服务器。开源代码中不含任何 Key。</div>
+        <div class="test-result" id="testResult"></div>
+      </div>
+      <div class="field">
+        <div class="field-label">🌐 API 端点 <span class="kb-size-badge" id="endpointBadge">默认直连</span></div>
+        <input type="text" id="setEndpoint" placeholder="留空 = 浏览器直连 https://open.bigmodel.cn/api/paas/v4/chat/completions" autocomplete="off">
+        <div class="field-hint">留空 = 浏览器直连智谱（推荐，零后端）。若网络受限（预览容器 / 公司网络），可填一个转发代理地址（如 Cloudflare Worker 代理）。Key 会随请求发给该端点。</div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <div class="field-label">🧠 模型</div>
+          <select id="setModel">
+            <option value="glm-4-flash">glm-4-flash（免费 · 推荐）</option>
+            <option value="glm-4-flash-250414">glm-4-flash-250414（免费）</option>
+            <option value="glm-4-air">glm-4-air（低价高速）</option>
+            <option value="glm-4-plus">glm-4-plus（最强）</option>
+          </select>
+        </div>
+        <div class="field">
+          <div class="field-label">🌡️ 温度 <span id="tempVal">0.6</span></div>
+          <input type="range" id="setTemp" min="0" max="1" step="0.1" value="0.6" style="width:100%;" oninput="document.getElementById('tempVal').textContent = this.value">
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">📚 知识库内容 <span class="kb-size-badge" id="setKbSize"></span></div>
+        <textarea id="setKb" spellcheck="false" placeholder="粘贴你的 ATH 协议知识库 Markdown 全文。内置精简版可直接使用，也可替换为你的完整版（20 章）。"></textarea>
+        <div class="field-hint">全文将注入到每次生成的 Prompt 中（替代向量检索）。内容同样只存本地。</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="testConnection()" id="btnTest">🔌 测试连接</button>
+      <button class="btn" onclick="clearAll()">🗑️ 清除本地数据</button>
+      <button class="btn primary" onclick="saveSettings()">💾 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 历史抽屉 ========== -->
+<div class="drawer-mask" id="drawerMask" onclick="closeHistory()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="modal-title">🕘 生成历史（本地）</div>
+    <div class="modal-close" onclick="closeHistory()">✕</div>
+  </div>
+  <div class="drawer-body" id="histList"></div>
+</div>
+
+<script>
+// ========== 内置知识库（精简版，可在设置中替换为完整版） ==========
+const BUILTIN_KB = `# ATH 协议知识库（内置精简版）
+
+> 本版本为演示用内置知识库。可在「模型设置 → 知识库内容」中替换为完整版（20 章）。
+> ATH = Agent Trust Handshake（智能体信任握手协议）：解决 Agent 之间"双向授权 + 细粒度信任"的协议。
+
+## 1. 协议概述
+ATH 是一个面向智能体（Agent）之间双向授权与信任握手的开放协议。传统 OAuth 2.0 只解决"用户同意授权"，不验证"对方 Agent 是否可信"。ATH 在 OAuth 基础上增加双向能力：客户端 Agent 与服务端 Agent 在握手阶段互相验证身份、能力与信任边界，通过细粒度能力授权（capability-scoped）替代全量授权。
+
+## 2. 核心概念
+- DID（Decentralized Identifier）：Agent 的分布式身份标识，形如 did:ath:<id>。
+- 能力清单（Capability List）：Agent 对外声明可被授权的操作集合，如 handshake:write、token:verify。
+- nonce：一次性随机数，用于防止重放攻击，握手请求必须携带。
+- 信任握手（Trust Handshake）：客户端与服务端建立双向信任的完整流程。
+- 细粒度授权：按"能力 + 资源 + 范围"授权，最小权限原则。
+
+## 3. 握手流程（handshake 端点）
+1. 客户端构造握手请求：DID、公钥、能力清单、nonce。
+2. 服务端验证客户端 DID 与公钥（可选：通过信任锚或第三方验证）。
+3. 服务端返回握手响应：服务端 DID、公钥、支持的能力子集、会话令牌。
+4. 双方各自校验对方能力清单，握手完成。
+
+## 4. 能力发现（discovery 端点）
+客户端通过 GET /.well-known/ath-configuration 获取服务端支持的协议版本、能力清单、扩展。未声明的能力视为不支持。
+
+## 5. 令牌（token 端点）
+ATH 使用 JWT（RFC 7519）作为会话令牌。签发与校验必须包含三项：
+- audience（受众）：必须匹配服务端配置的预期值（如 ath:app）。
+- scope（范围）：令牌只能携带握手时协商的能力范围。
+- expiry（过期）：令牌必须有过期时间，服务端必须校验。
+若三项任一不匹配，服务端必须拒绝并返回 401（INVALID_AUDIENCE / INVALID_SCOPE / TOKEN_EXPIRED）。
+
+## 6. 验证（verify 端点）
+资源提供方通过 verify 端点校验令牌的有效性与权限，返回该令牌对应的能力、受众、过期时间。校验失败返回 401 错误码。
+
+## 7. 错误码表（节选）
+- 400 INVALID_PARAMS：请求参数缺失或格式错误。
+- 401 INVALID_AUDIENCE：令牌 audience 与服务端期望不匹配。
+- 401 INVALID_SCOPE：令牌 scope 超出握手协商的能力。
+- 401 TOKEN_EXPIRED：令牌已过期。
+- 401 UNSIGNED_TOKEN：服务端不接受未签名令牌。
+- 404 DISCOVERY_FAILED：能力发现端点不可达。
+- 409 HANDSHAKE_CONFLICT：nonce 重复或握手状态冲突。
+
+## 8. 安全要求
+- 客户端 MUST 在握手请求中携带 nonce 与公钥。
+- 服务端 MUST NOT 接受未签名令牌，即使声明为内部调用。
+- 服务端 SHOULD 校验令牌的 audience、scope、expiry 三项，缺一不可。
+- 客户端 SHOULD 在握手前查询服务端能力清单。
+- 令牌生命周期内，能力变更 SHOULD 触发重新握手。
+
+## 9. 参考标准
+OAuth 2.0（RFC 6749）/ PKCE（RFC 7636）/ RFC 8707（资源指示）/ RFC 7519（JWT）/ RFC 2119（关键词约定）/ MCP（Model Context Protocol）/ A2A（Agent-to-Agent）。
+
+## 10. 术语表（中英文对照）
+- 握手 Handshake / 能力清单 Capability List / 信任锚 Trust Anchor / 受众 Audience / 范围 Scope / 令牌 Token / 刷新 Refresh / 撤销 Revoke / 发现 Discovery / 验证 Verify / 随机数 Nonce / 公钥 Public Key / 私钥 Private Key / 签名 Sign / 重放攻击 Replay Attack / 中间人 MITM / 双向授权 Mutual Authorization / 细粒度 Fine-grained / 最小权限 Least Privilege / 会话 Session / 吊销 Revocation`;
+
+// ========== 常量 ==========
+const GLM_ENDPOINT = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+function getEndpoint() {
+  const e = (getSettings().endpoint || '').trim();
+  return e || GLM_ENDPOINT;
+}
+const LS_KEY = 'ath_v2_';           // 本地存储前缀
+const RFC_WORDS = ['MUST NOT','SHOULD NOT','MAY NOT','MUST','SHOULD','MAY','REQUIRED','RECOMMENDED','OPTIONAL','SHALL NOT','SHALL'];
+const TERMS = ['握手','handshake','能力清单','Capability List','受众','audience','范围','scope','令牌','token','发现','discovery','验证','verify','随机数','nonce','公钥','public key','签名','sign','双向授权','mutual','细粒度','fine-grained','信任锚','trust anchor'];
+
+// ========== 状态 ==========
+const state = {
+  editing: 0,
+  qaIdx: 0,
+  running: null          // AbortController
+};
+let lastOutput = {};     // 各模式最近一次输出原文 {standard:'', code:'', qa:''}
+
+// ========== 本地存储读写 ==========
+function lsGet(k, def) { try { const v = localStorage.getItem(LS_KEY + k); return v === null ? def : v; } catch(e) { return def; } }
+function lsSet(k, v) { try { localStorage.setItem(LS_KEY + k, v); } catch(e) {} }
+
+function getSettings() {
+  return {
+    apiKey: lsGet('apiKey', ''),
+    model: lsGet('model', 'glm-4-flash'),
+    temp: parseFloat(lsGet('temp', '0.6')),
+    endpoint: lsGet('endpoint', ''),
+    kb: lsGet('kb', BUILTIN_KB)
+  };
+}
+function getKB() { return getSettings().kb || BUILTIN_KB; }
+
+// ========== 工具函数 ==========
+function getWS(mode) { return document.getElementById({standard:'ws0', code:'ws1', qa:'ws2'}[mode]); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// 简化 Markdown → HTML（白名单渲染，安全）
+function md2html(md) {
+  if (!md) return '';
+  const lines = esc(md).split('\n');
+  let html = '', inCode = false, codeLang = '', codeBuf = [], listType = null, inTable = false, tableBuf = [], para = [];
+  const flushPara = () => { if (para.length) { html += '<p>' + para.join('<br>') + '</p>'; para = []; } };
+  const flushTable = () => {
+    if (!tableBuf.length) return;
+    const rows = tableBuf.map(r => '<tr>' + r.split('|').map(c => '<td>' + c.trim() + '</td>').join('') + '</tr>');
+    if (rows.length) { html += '<table><thead>' + rows[0] + '</thead><tbody>' + rows.slice(1).join('') + '</tbody></table>'; }
+    tableBuf = [];
+  };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    // 代码块
+    if (/^```/.test(line)) {
+      flushPara(); flushTable();
+      if (!inCode) { inCode = true; codeLang = line.slice(3).trim(); codeBuf = []; }
+      else { html += '<pre><code class="lang-' + esc(codeLang) + '">' + codeBuf.join('\n') + '</code></pre>'; inCode = false; }
+      continue;
+    }
+    if (inCode) { codeBuf.push(line); continue; }
+    // 表格分隔行（| --- | --- |）跳过
+    if (/^\|[\s\-:|]+\|$/.test(line.replace(/-+/g,'-'))) { continue; }
+    // 表格
+    if (/^\|.*\|$/.test(line)) {
+      flushPara();
+      if (!inTable) { inTable = true; tableBuf = []; }
+      tableBuf.push(line.replace(/^\||\|$/g,''));
+      continue;
+    }
+    if (inTable) { flushTable(); inTable = false; }
+    // 标题
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) { flushPara(); flushTable(); const lvl = Math.min(4, h[1].length); html += '<h' + lvl + '>' + inline(h[2]) + '</h' + lvl + '>'; continue; }
+    // 分隔线
+    if (/^([-*_]\s*){3,}$/.test(line)) { flushPara(); flushTable(); html += '<hr>'; continue; }
+    // 引用
+    if (/^>\s?/.test(line)) { flushPara(); flushTable(); html += '<blockquote>' + inline(line.replace(/^>\s?/,'')) + '</blockquote>'; continue; }
+    // 无序列表
+    const ul = line.match(/^\s*[-*]\s+(.*)$/);
+    if (ul) { flushPara(); flushTable(); if (listType !== 'ul') { if (listType) html += '</ul>'; html += '<ul>'; listType = 'ul'; } html += '<li>' + inline(ul[1]) + '</li>'; continue; }
+    // 有序列表
+    const ol = line.match(/^\s*\d+[.、]\s+(.*)$/);
+    if (ol) { flushPara(); flushTable(); if (listType !== 'ol') { if (listType) html += '</ol>'; html += '<ol>'; listType = 'ol'; } html += '<li>' + inline(ol[1]) + '</li>'; continue; }
+    if (listType) { html += listType === 'ul' ? '</ul>' : '</ol>'; listType = null; }
+    // 空行
+    if (!line.trim()) { flushPara(); continue; }
+    para.push(inline(line));
+  }
+  flushPara(); flushTable();
+  if (inCode) html += '<pre><code>' + codeBuf.join('\n') + '</code></pre>';
+  if (listType) html += listType === 'ul' ? '</ul>' : '</ol>';
+  return html;
+}
+// 行内：粗体、行内代码、RFC 关键词高亮
+function inline(s) {
+  let t = s;
+  t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+  t = t.replace(/(MUST NOT|SHOULD NOT|MAY NOT|MUST|SHOULD|MAY|REQUIRED|RECOMMENDED|OPTIONAL|SHALL NOT|SHALL)(?![a-zA-Z])/g, '<span class="hl">$1</span>');
+  return t;
+}
+
+// ========== GLM 流式调用 ==========
+async function glmChat({ messages, onDelta, signal }) {
+  const s = getSettings();
+  if (!s.apiKey) throw new Error('未配置 API Key，请先点击右上角「⚙️ 模型设置」填入');
+  const resp = await fetch(getEndpoint(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.apiKey },
+    body: JSON.stringify({ model: s.model, temperature: s.temp, stream: true, messages }),
+    signal
+  });
+  if (!resp.ok) {
+    let msg = 'HTTP ' + resp.status;
+    try {
+      const j = await resp.json();
+      msg = (j.error && (j.error.message || j.msg)) || (j.message) || JSON.stringify(j);
+    } catch(e) {}
+    throw new Error(msg);
+  }
+  if (!resp.body) throw new Error('浏览器不支持流式读取');
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder('utf-8');
+  let buf = '', usage = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let idx;
+    while ((idx = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, idx).trim();
+      buf = buf.slice(idx + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === '[DONE]') continue;
+      try {
+        const j = JSON.parse(data);
+        if (j.usage) usage = j.usage;
+        const delta = j.choices && j.choices[0] && j.choices[0].delta;
+        if (delta && delta.content) onDelta(delta.content);
+      } catch(e) {}
+    }
+  }
+  return usage;
+}
+
+// ========== 校验（真实前端规则） ==========
+function checkRFC(text) {
+  const up = text.toUpperCase();
+  const counts = {};
+  let total = 0;
+  for (const w of RFC_WORDS) {
+    const re = new RegExp('\\b' + w.replace(/\s+/g, '\\s+') + '\\b', 'g');
+    const n = (up.match(re) || []).length;
+    if (n) { counts[w] = n; total += n; }
+  }
+  return { counts, total };
+}
+function checkTerms(text) {
+  const low = text.toLowerCase();
+  let hit = 0;
+  for (const t of TERMS) {
+    if (low.includes(t.toLowerCase())) hit++;
+  }
+  return { hit, total: TERMS.length };
+}
+function checkCodeBlocks(text) {
+  const open = (text.match(/```/g) || []).length;
+  return { balanced: open % 2 === 0, fences: open / 2 };
+}
+function checkBrackets(text) {
+  // 仅统计代码块内的括号配对
+  const blocks = text.split(/```/);
+  let bad = 0, checked = 0;
+  for (let i = 1; i < blocks.length; i += 2) {
+    const b = blocks[i];
+    for (const [o, c] of [['(',')'],['{','}'],['[',']']]) {
+      const n1 = (b.split(o).length - 1), n2 = (b.split(c).length - 1);
+      if (n1 !== n2) bad++;
+      checked++;
+    }
+  }
+  return { bad, checked };
+}
+
+function setCheck(mode, idx, status, text) {
+  const box = document.getElementById('checks' + {standard:0, code:1, qa:2}[mode]);
+  if (!box) return;
+  const items = box.querySelectorAll('.mini-item');
+  if (!items[idx]) return;
+  const icon = items[idx].querySelector('.mini-icon');
+  const txt = items[idx].querySelector('.mini-text');
+  icon.className = 'mini-icon ' + status;
+  icon.textContent = status === 'pass' ? '✓' : status === 'run' ? '…' : '!';
+  txt.innerHTML = text;
+}
+
+// ========== 生成主流程 ==========
+function buildMessages(mode) {
+  const kb = getKB();
+  const s = getSettings();
+  const common = '知识库（以下为全文，回答 MUST 严格基于此，禁止编造）：\n\n' + kb.slice(0, 20000);
+  if (mode === 'standard') {
+    const ws = getWS('standard');
+    const lang = document.getElementById('stdLang').value;
+    const stds = Array.from(ws.querySelectorAll('.std-item.active')).map(i => i.textContent.replace('✓','').trim());
+    const toggles = ws.querySelectorAll('.spec-toggle');
+    const opts = {
+      force: !toggles[0].classList.contains('off'),
+      example: !toggles[1].classList.contains('off'),
+      termCheck: !toggles[2].classList.contains('off')
+    };
+    const prompt = ws.querySelector('#prompt0').innerText.trim() || '生成规范条款';
+    const system = '你是 ATH（Agent Trust Handshake，智能体信任握手协议）规范撰写专家。\n' +
+      '输出要求：\n1. 严格遵循 RFC 2119 关键词约定（MUST / SHOULD / MAY / MUST NOT / SHOULD NOT）。\n' +
+      '2. 输出语言：' + lang + '。\n' +
+      '3. 参考标准：' + stds.join('、') + '。\n' +
+      '4. 强制力关键词' + (opts.force ? '开启' : '关闭') + '；自动生成示例' + (opts.example ? '开启' : '关闭') + '；术语一致性校验' + (opts.termCheck ? '开启' : '关闭') + '。\n' +
+      '5. 输出格式：第一部分为规范条款（Markdown 格式，标题用 ##）；然后单独一行输出 ===SCHEMA===，第二部分为对应的 JSON Schema 定义（纯 JSON 代码块，不要其他文字）。';
+    return [
+      { role: 'system', content: system },
+      { role: 'user', content: common + '\n\n【任务】' + prompt }
+    ];
+  }
+  if (mode === 'code') {
+    const ws = getWS('code');
+    const ep = (ws.querySelector('.std-item.active[data-ep]') || {}).dataset ? (ws.querySelector('.std-item.active[data-ep]') || {dataset:{ep:'handshake'}}).dataset.ep : 'handshake';
+    const langs = Array.from(ws.querySelectorAll('.std-item.active[data-lang]')).map(i => i.dataset.lang);
+    const style = document.getElementById('codeStyle').value;
+    const prompt = ws.querySelector('#prompt1').innerText.trim() || '实现该端点';
+    const system = '你是 ATH（Agent Trust Handshake）协议端点实现专家。\n' +
+      '输出要求：\n1. 目标端点：' + ep + '。\n2. 目标语言：' + langs.join('、') + '（按此顺序）。\n' +
+      '3. 代码风格：' + style + '。\n' +
+      '4. 必须实现：统一错误码、JWT 三项校验（audience/scope/expiry）、输入参数校验。\n' +
+      '5. 输出格式：每种语言用 ``` 代码块，语言标记行写 ===LANG:typescript=== / ===LANG:python=== / ===LANG:go===（在代码块内第一行），代码中 MUST 加注释说明关键校验。';
+    return [
+      { role: 'system', content: system },
+      { role: 'user', content: common + '\n\n【任务】' + prompt }
+    ];
+  }
+  // qa
+  const question = document.getElementById('qaQuestion').innerText.trim();
+  const style = document.getElementById('qaStyle').value;
+  const system = '你是 ATH（Agent Trust Handshake）协议答疑专家。\n' +
+    '输出要求：\n1. 严格基于知识库回答，知识库没有的内容 MUST 明确说明"知识库未覆盖"。\n' +
+    '2. 回答风格：' + style + '。\n' +
+    '3. 引用知识库章节时用 § 标记。\n' +
+    '4. 输出格式：第一部分为回答（Markdown）；然后单独一行输出 ===KB===，第二部分为"建议沉淀的知识条目"（标题/分类/标签/关联引用，用 // 注释风格纯文本）。';
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: common + '\n\n【问题】' + question }
+  ];
+}
+
+function splitOutput(raw, separator) {
+  const idx = raw.indexOf(separator);
+  if (idx < 0) return { main: raw, sub: '' };
+  return { main: raw.slice(0, idx), sub: raw.slice(idx + separator.length) };
+}
+
+async function generate(mode) {
+  const ws = getWS(mode);
+  const btn = document.getElementById('btnGen' + {standard:0, code:1, qa:2}[mode]);
+  // 如果正在生成 → 停止
+  if (state.running) {
+    state.running.abort();
+    state.running = null;
+    btn.innerHTML = '🚀 开始生成';
+    btn.classList.remove('danger');
+    document.getElementById('flowAI').classList.remove('active');
+    return;
+  }
+  const s = getSettings();
+  if (!s.apiKey) {
+    openSettings();
+    const tr = document.getElementById('testResult');
+    tr.className = 'test-result err';
+    tr.textContent = '请先在上方填入智谱 API Key（bigmodel.cn 免费注册）';
+    return;
+  }
+  // 状态：运行中
+  const ctrl = new AbortController();
+  state.running = ctrl;
+  btn.innerHTML = '⏹ 停止生成';
+  btn.classList.add('danger');
+  document.getElementById('flowAI').classList.add('active');
+  // 清空输出
+  const ids = mode === 'standard' ? ['out0p','out0s'] : mode === 'code' ? ['out1a','out1b'] : ['out2a','out2b'];
+  ids.forEach(id => { const el = document.getElementById(id); el.innerHTML = '<span class="placeholder">⏳ 生成中…</span>'; });
+  const metaEl = document.getElementById('meta' + {standard:0, code:1, qa:2}[mode]);
+  metaEl.innerHTML = '<span class="loading">⏳ 正在调用 ' + s.model + ' …</span>';
+  // 重置校验
+  ['checks0','checks1','checks2'].forEach(id => {});
+  const checks = document.getElementById('checks' + {standard:0, code:1, qa:2}[mode]);
+  checks.querySelectorAll('.mini-item').forEach((it, i) => {
+    it.querySelector('.mini-icon').className = 'mini-icon run';
+    it.querySelector('.mini-icon').textContent = '…';
+    it.querySelector('.mini-text').innerHTML = '<b>检查中</b><br>等待生成完成';
+  });
+  document.getElementById('flowCheck').classList.remove('active');
+
+  const t0 = performance.now();
+  let raw = '';
+  let raf = 0, pending = false;
+  const flushRender = () => {
+    pending = false;
+    if (mode === 'standard') {
+      const sp = splitOutput(raw, '===SCHEMA===');
+      document.getElementById('out0p').innerHTML = md2html(sp.main) || '<span class="placeholder">（等待内容…）</span>';
+      document.getElementById('out0s').innerHTML = sp.sub.trim() ? md2html(sp.sub) : '<span class="placeholder">// JSON Schema 将在此显示</span>';
+    } else if (mode === 'code') {
+      const parts = raw.split(/```/);
+      const blocks = [];
+      for (let i = 1; i < parts.length; i += 2) blocks.push(parts[i]);
+      const langOf = b => (b.match(/^\s*===LANG:([a-z]+)===/i) || [])[1] || '';
+      const ordered = blocks.map((b, i) => ({ b, i, lang: langOf(b) }));
+      const langPref = Array.from(ws.querySelectorAll('.std-item.active[data-lang]')).map(x => x.dataset.lang);
+      const rank = l => { const lc = (l||'').toLowerCase(); if (!lc) return 99; const i = langPref.findIndex(x => x.toLowerCase().startsWith(lc) || lc.startsWith(x.toLowerCase())); return i < 0 ? 50 : i; };
+      ordered.sort((a, b) => rank(a.lang) - rank(b.lang));
+      const elA = document.getElementById('out1a'), elB = document.getElementById('out1b');
+      if (ordered.length === 0) { elA.innerHTML = '<span class="placeholder">// 代码将在此实时生成</span>'; elB.innerHTML = ''; }
+      else if (ordered.length === 1) { elA.innerHTML = '<pre><code>' + esc(ordered[0].b.trim()) + '</code></pre>'; elB.innerHTML = ''; }
+      else { elA.innerHTML = '<pre><code>' + esc(ordered[0].b.trim()) + '</code></pre>'; elB.innerHTML = '<pre><code>' + esc(ordered[1].b.trim()) + '</code></pre>'; }
+    } else {
+      const sp = splitOutput(raw, '===KB===');
+      document.getElementById('out2a').innerHTML = md2html(sp.main) || '<span class="placeholder">（等待内容…）</span>';
+      document.getElementById('out2b').innerHTML = sp.sub.trim() ? md2html(sp.sub) : '<span class="placeholder">// 建议沉淀的知识条目</span>';
+    }
+  };
+  const schedule = () => {
+    if (!pending) { pending = true; raf = requestAnimationFrame(flushRender); }
+  };
+
+  try {
+    const usage = await glmChat({
+      messages: buildMessages(mode),
+      signal: ctrl.signal,
+      onDelta: d => { raw += d; schedule(); }
+    });
+    if (raf) cancelAnimationFrame(raf);
+    flushRender();
+    lastOutput[mode] = raw;
+    const dt = ((performance.now() - t0) / 1000).toFixed(1);
+    const tok = usage ? (' | ⚡ ' + (usage.total_tokens || '') + ' tokens') : '';
+    metaEl.innerHTML = '<span>⏱ 生成耗时 ' + dt + 's' + tok + '</span><span class="ok">✅ 已完成</span>';
+    // 校验
+    runChecks(mode, raw);
+    // 历史
+    saveHistory(mode, raw, dt);
+    document.getElementById('flowAI').classList.remove('active');
+    document.getElementById('flowCheck').classList.add('active');
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      flushRender();
+      metaEl.innerHTML = '<span>⏹ 已手动停止（保留当前已生成内容）</span>';
+    } else {
+      metaEl.innerHTML = '<span style="color:#f53f3f;">❌ ' + esc(err.message) + '</span>';
+      ids.forEach(id => { const el = document.getElementById(id); el.innerHTML = '<span class="placeholder">生成失败：' + esc(err.message) + '</span>'; });
+    }
+    document.getElementById('flowAI').classList.remove('active');
+  } finally {
+    state.running = null;
+    btn.innerHTML = '🚀 开始生成';
+    btn.classList.remove('danger');
+  }
+}
+
+// ========== 生成后校验 ==========
+function runChecks(mode, text) {
+  document.getElementById('flowCheck').classList.remove('active');
+  setTimeout(() => document.getElementById('flowCheck').classList.add('active'), 50);
+  const suffix = mode === 'code' ? 0 : (mode === 'standard' ? 0 : 2);
+  if (mode === 'standard') {
+    const r = checkRFC(text);
+    const t = checkTerms(text);
+    setCheck('standard', 0, r.total > 0 ? 'pass' : 'wait', '<b>RFC 关键词</b> · ' + r.total + ' 处（' + Object.keys(r.counts).slice(0,3).join('/') + '）');
+    setCheck('standard', 1, t.hit >= 5 ? 'pass' : 'wait', '<b>术语一致性</b> · 命中 ' + t.hit + '/' + t.total + ' 个术语');
+    const artifact = document.getElementById('artifact0');
+    artifact.innerHTML = '规范条款（' + r.total + ' 个强制力关键词）<br>JSON Schema 定义<br>术语对照（' + t.hit + ' 处命中）';
+  } else if (mode === 'code') {
+    const cb = checkCodeBlocks(text);
+    const br = checkBrackets(text);
+    setCheck('code', 0, cb.balanced ? 'pass' : 'wait', '<b>代码块闭合</b> · ' + cb.fences + ' 个代码块' + (cb.balanced ? '' : '（未闭合）'));
+    setCheck('code', 1, br.bad === 0 ? 'pass' : 'wait', '<b>括号配对</b> · ' + (br.bad === 0 ? '全部配对' : br.bad + ' 处不匹配'));
+    const artifact = document.getElementById('artifact1');
+    artifact.innerHTML = '多语言实现代码<br>可复制沉淀到 SDK 仓库';
+  } else {
+    const t = checkTerms(text);
+    const kbCover = text.includes('知识库未覆盖') ? '有未覆盖声明' : '基于知识库回答';
+    setCheck('qa', 0, text.length > 80 ? 'pass' : 'wait', '<b>知识库覆盖</b> · ' + kbCover);
+    setCheck('qa', 1, t.hit >= 3 ? 'pass' : 'wait', '<b>术语命中</b> · ' + t.hit + ' 个术语');
+    const artifact = document.getElementById('artifact2');
+    artifact.innerHTML = '结构化知识条目<br>可沉淀到知识库（20 章）';
+  }
+}
+
+// ========== 历史记录 ==========
+function saveHistory(mode, output, dt) {
+  try {
+    const h = JSON.parse(lsGet('history', '[]'));
+    const ws = getWS(mode);
+    const prompt = mode === 'qa' ? document.getElementById('qaQuestion').innerText.slice(0, 120)
+      : (ws.querySelector('.prompt-box') || {}).innerText ? ws.querySelector('.prompt-box').innerText.slice(0, 120) : '';
+    h.unshift({ t: Date.now(), mode, prompt: prompt || '（无输入文本）', output: output.slice(0, 4000), dt });
+    if (h.length > 20) h.length = 20;
+    lsSet('history', JSON.stringify(h));
+  } catch(e) {}
+}
+function renderHistory() {
+  const list = document.getElementById('histList');
+  let h = [];
+  try { h = JSON.parse(lsGet('history', '[]')); } catch(e) {}
+  if (!h.length) { list.innerHTML = '<div class="hist-empty">还没有生成记录<br>完成一次生成后会自动保存在这里</div>'; return; }
+  const names = ['标准撰写','代码生成','智能答疑'];
+  list.innerHTML = h.map((x, i) => {
+    const d = new Date(x.t).toLocaleString('zh-CN', { hour12: false });
+    return '<div class="hist-item" onclick="restoreHistory(' + i + ')">' +
+      '<div class="hist-top"><span class="hist-mode m' + x.mode + '">' + names[x.mode] + '</span><span class="hist-time">' + d + (x.dt ? ' · ' + x.dt + 's' : '') + '</span></div>' +
+      '<div class="hist-prompt">' + esc(x.prompt) + '</div>' +
+      '<div style="text-align:right;margin-top:4px;"><span class="hist-del" onclick="event.stopPropagation();deleteHistory(' + i + ')">删除</span></div>' +
+      '</div>';
+  }).join('');
+}
+function restoreHistory(i) {
+  let h = []; try { h = JSON.parse(lsGet('history', '[]')); } catch(e) {}
+  const x = h[i]; if (!x) return;
+  switchTab(x.mode);
+  const ws = getWS(x.mode);
+  if (x.mode === 'standard') {
+    const sp = splitOutput(x.output, '===SCHEMA===');
+    document.getElementById('out0p').innerHTML = md2html(sp.main);
+    document.getElementById('out0s').innerHTML = sp.sub.trim() ? md2html(sp.sub) : '<span class="placeholder">// JSON Schema</span>';
+    document.getElementById('meta0').innerHTML = '<span>📋 已从历史恢复</span>' + (x.dt ? '<span>⏱ 当时耗时 ' + x.dt + 's</span>' : '');
+    runChecks('standard', x.output);
+  } else if (x.mode === 'code') {
+    lastOutput.code = x.output;
+    const parts = x.output.split(/```/);
+    const blocks = [];
+    for (let i = 1; i < parts.length; i += 2) blocks.push(parts[i]);
+    const elA = document.getElementById('out1a'), elB = document.getElementById('out1b');
+    if (blocks[0]) elA.innerHTML = '<pre><code>' + esc(blocks[0].trim()) + '</code></pre>';
+    if (blocks[1]) elB.innerHTML = '<pre><code>' + esc(blocks[1].trim()) + '</code></pre>';
+    document.getElementById('meta1').innerHTML = '<span>📋 已从历史恢复</span>';
+    runChecks('code', x.output);
+  } else {
+    const sp = splitOutput(x.output, '===KB===');
+    document.getElementById('out2a').innerHTML = md2html(sp.main);
+    document.getElementById('out2b').innerHTML = sp.sub.trim() ? md2html(sp.sub) : '<span class="placeholder">// 知识条目</span>';
+    document.getElementById('meta2').innerHTML = '<span>📋 已从历史恢复</span>';
+    runChecks('qa', x.output);
+  }
+  lastOutput[x.mode] = x.output;
+  closeHistory();
+}
+function deleteHistory(i) {
+  let h = []; try { h = JSON.parse(lsGet('history', '[]')); } catch(e) {}
+  h.splice(i, 1);
+  lsSet('history', JSON.stringify(h));
+  renderHistory();
+}
+
+// ========== 设置弹窗 ==========
+function openSettings() {
+  const s = getSettings();
+  document.getElementById('setApiKey').value = s.apiKey;
+  document.getElementById('setModel').value = s.model;
+  document.getElementById('setTemp').value = s.temp;
+  document.getElementById('tempVal').textContent = s.temp;
+  document.getElementById('setEndpoint').value = s.endpoint;
+  document.getElementById('endpointBadge').textContent = s.endpoint ? '自定义' : '默认直连';
+  document.getElementById('setKb').value = s.kb;
+  updateKbSize();
+  const tr = document.getElementById('testResult');
+  tr.className = 'test-result'; tr.textContent = '';
+  document.getElementById('settingsModal').classList.add('show');
+  updateKeyStatus();
+}
+function closeSettings() { document.getElementById('settingsModal').classList.remove('show'); }
+function saveSettings() {
+  const key = document.getElementById('setApiKey').value.trim();
+  const model = document.getElementById('setModel').value;
+  const temp = parseFloat(document.getElementById('setTemp').value);
+  const endpoint = document.getElementById('setEndpoint').value.trim();
+  const kb = document.getElementById('setKb').value.trim();
+  lsSet('apiKey', key);
+  lsSet('model', model);
+  lsSet('temp', temp);
+  lsSet('endpoint', endpoint);
+  lsSet('kb', kb || BUILTIN_KB);
+  updateKbSize();
+  updateKeyStatus();
+  const tr = document.getElementById('testResult');
+  tr.className = 'test-result ok'; tr.textContent = '✅ 已保存（Key 仅存本地浏览器）';
+  setTimeout(() => closeSettings(), 1200);
+}
+function clearAll() {
+  if (!confirm('确定清除全部本地数据（API Key / 知识库 / 历史记录）？')) return;
+  Object.keys(localStorage).filter(k => k.startsWith(LS_KEY)).forEach(k => localStorage.removeItem(k));
+  updateKeyStatus(); updateKbSize();
+  document.getElementById('testResult').className = 'test-result ok';
+  document.getElementById('testResult').textContent = '✅ 已清除全部本地数据';
+}
+async function testConnection() {
+  const key = document.getElementById('setApiKey').value.trim();
+  const tr = document.getElementById('testResult');
+  if (!key) { tr.className = 'test-result err'; tr.textContent = '请先填入 API Key'; return; }
+  tr.className = 'test-result run'; tr.textContent = '🔌 正在测试连接…';
+  const btn = document.getElementById('btnTest');
+  btn.disabled = true;
+  try {
+    const resp = await fetch(getEndpoint(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model: document.getElementById('setModel').value, stream: false, messages: [{ role: 'user', content: '回复"OK"两个字' }] })
+    });
+    const j = await resp.json();
+    if (resp.ok) {
+      tr.className = 'test-result ok';
+      tr.textContent = '✅ 连接成功：' + (j.choices && j.choices[0] ? j.choices[0].message.content.slice(0, 50) : 'OK') + '（' + j.model + '）';
+    } else {
+      tr.className = 'test-result err';
+      tr.textContent = '❌ ' + ((j.error && j.error.message) || JSON.stringify(j));
+    }
+  } catch (e) {
+    tr.className = 'test-result err';
+    tr.textContent = '❌ 网络错误：' + e.message + '。若在预览/内嵌浏览器中运行，请改用系统 Chrome 或 Edge 打开本页；若仍失败，可在上方「API 端点」填入代理地址后重试';
+  } finally {
+    btn.disabled = false;
+  }
+}
+function updateKbSize() {
+  const kb = getKB();
+  const size = (new Blob([kb]).size / 1024).toFixed(1);
+  document.getElementById('kbSizeBadge').textContent = kb.length > 0 ? (size + ' KB · 全文注入') : '内置精简版';
+  document.getElementById('setKbSize').textContent = size + ' KB';
+  const meta = document.getElementById('kbMetaMain');
+  if (meta) meta.textContent = kb === BUILTIN_KB ? '内置精简版 · 全文注入' : '自定义版 · ' + size + ' KB · 全文注入';
+}
+function updateKeyStatus() {
+  const s = getSettings();
+  const badge = document.getElementById('keyStatus');
+  const text = document.getElementById('keyStatusText');
+  if (s.apiKey) {
+    badge.classList.remove('off');
+    text.textContent = s.model + ' 已配置';
+  } else {
+    badge.classList.add('off');
+    text.textContent = '模型未配置';
+  }
+}
+
+// ========== 历史抽屉 ==========
+function openHistory() { renderHistory(); document.getElementById('drawer').classList.add('show'); document.getElementById('drawerMask').classList.add('show'); }
+function closeHistory() { document.getElementById('drawer').classList.remove('show'); document.getElementById('drawerMask').classList.remove('show'); }
+
+// ========== 编辑模式 ==========
+function toggleEdit(mode) {
+  const ws = getWS(mode);
+  const ids = mode === 0 ? ['out0p','out0s'] : mode === 1 ? ['out1a','out1b'] : ['out2a','out2b'];
+  const editing = !state.editing;
+  state.editing = editing;
+  document.querySelectorAll('.ai-output').forEach(o => {
+    if (editing) { o.setAttribute('contenteditable', 'true'); o.style.border = '2px dashed #4e6ef2'; o.style.background = '#fff'; }
+    else { o.removeAttribute('contenteditable'); o.style.border = ''; o.style.background = ''; }
+  });
+  // 更新当前模式按钮文案
+  ws.querySelectorAll('.btn').forEach(b => {
+    if (b.textContent.includes('编辑')) b.textContent = editing ? '✓ 完成编辑' : '✏️ 编辑修改';
+  });
+}
+
+// ========== Tab 切换 ==========
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.workspace').forEach((w, i) => w.classList.toggle('active', i === idx));
+  document.body.className = 'theme-' + ['standard','code','qa'][idx];
+}
+
+// ========== QA 预设 ==========
+const QA_PRESETS = [
+  '部署 ATH 网关时，handshake 端点返回 401，日志显示 "audience validation failed"，如何排查？',
+  'ATH SDK 如何集成到现有项目？支持哪些语言和框架？',
+  'ATH 协议如何实现双向授权？和传统 OAuth 2.0 的区别是什么？'
+];
+function switchQA(idx) {
+  state.qaIdx = idx;
+  document.getElementById('qaQuestion').innerText = QA_PRESETS[idx];
+  document.querySelectorAll('#ws2 .qa-tag').forEach((tag, i) => {
+    if (i === idx) { tag.style.background = '#ecfdf5'; tag.style.borderColor = '#a7f3d0'; tag.style.color = '#059669'; }
+    else { tag.style.background = '#f5f6f8'; tag.style.borderColor = '#e5e6eb'; tag.style.color = '#646a73'; }
+  });
+}
+
+// ========== 小工具 ==========
+function toggleSpec(el) { el.classList.toggle('off'); }
+function resetPrompt(mode) {
+  const defs = [
+    '<span class="cmt"># 角色：ATH 协议规范撰写专家</span>\n<span class="kw">任务</span>：生成第 5.2 节「握手请求」的规范条款\n<span class="kw">要求</span>：遵循 RFC 2119 关键词约定，中英文双语',
+    '<span class="cmt"># 角色：ATH 端点实现专家</span>\n<span class="kw">强制</span>：遵循 knowledge base 中的规范定义\n<span class="kw">强制</span>：错误码使用统一错误码表\n<span class="kw">强制</span>：JWT 校验<span class="hl">audience + scope + expiry</span>'
+  ];
+  document.getElementById('prompt' + mode).innerHTML = defs[mode];
+}
+function resetStd() {
+  const ws = getWS('standard');
+  const defs = [1,1,1,0,0,1]; // OAuth/PKCE, RFC8707, JWT, MCP, A2A, RFC2119
+  ws.querySelectorAll('.std-item').forEach((it, i) => {
+    it.classList.toggle('active', !!defs[i]);
+    it.querySelector('.std-check').textContent = defs[i] ? '✓' : '';
+  });
+}
+function copyText(btn) {
+  const ws = btn.closest('.workspace');
+  const out = ws.querySelector('.ai-output');
+  navigator.clipboard.writeText(out.innerText).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ 已复制';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+// ========== 事件委托 ==========
+document.addEventListener('click', function(e) {
+  // 代码模式：端点 / 语言选择（互斥）
+  const ep = e.target.closest('.std-item[data-ep]');
+  if (ep && e.target.closest('#ws1')) {
+    const box = e.target.closest('.std-grid');
+    box.querySelectorAll('.std-item').forEach(i => { i.classList.remove('active'); i.querySelector('.std-check').textContent = ''; });
+    ep.classList.add('active'); ep.querySelector('.std-check').textContent = '✓';
+    return;
+  }
+  const lang = e.target.closest('.std-item[data-lang]');
+  if (lang && e.target.closest('#ws1')) {
+    lang.classList.toggle('active');
+    const check = lang.querySelector('.std-check');
+    check.textContent = lang.classList.contains('active') ? '✓' : '';
+    return;
+  }
+  // 标准模式：标准勾选（多选）
+  const std = e.target.closest('.std-item');
+  if (std && e.target.closest('#ws0')) {
+    std.classList.toggle('active');
+    const check = std.querySelector('.std-check');
+    check.textContent = std.classList.contains('active') ? '✓' : '';
+    return;
+  }
+  // 编辑/复制按钮（有 inline onclick 的由属性处理，避免双重触发）
+  const btn = e.target.closest('.btn');
+  if (btn) {
+    if (btn.hasAttribute('onclick')) return;
+    const txt = btn.textContent;
+    if (txt.includes('开始生成') || txt.includes('生成代码') || txt.includes('开始答疑')) return; // onclick 已绑定
+    if (txt.includes('重新生成')) {
+      const ws = btn.closest('.workspace');
+      const mode = ws.id === 'ws0' ? 'standard' : ws.id === 'ws1' ? 'code' : 'qa';
+      generate(mode);
+      return;
+    }
+    if (txt.includes('编辑')) {
+      const ws = btn.closest('.workspace');
+      const mode = ws.id === 'ws0' ? 0 : ws.id === 'ws1' ? 1 : 2;
+      toggleEdit(mode);
+      return;
+    }
+    if (txt.includes('复制')) { copyText(btn); return; }
+  }
+});
+
+// ========== 初始化 ==========
+updateKeyStatus();
+updateKbSize();
+renderHistory();
+</script>
+
+</body>
+</html>
