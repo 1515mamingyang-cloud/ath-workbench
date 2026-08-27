@@ -1,0 +1,23 @@
+# Dependencies & caches
+node_modules/
+*.log
+
+# Local environment & secrets
+.env
+.env.local
+*.local
+**/.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+out/
+
+# WorkBuddy workspace memory (project internal)
+.workbuddy/
